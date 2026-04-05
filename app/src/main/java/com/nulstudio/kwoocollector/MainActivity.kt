@@ -93,11 +93,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
+import com.nulstudio.kwoocollector.push.PushNavigationCenter
 import com.nulstudio.kwoocollector.ui.theme.NulKwooCollectorTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PushNavigationCenter.handleIntent(intent)
         enableEdgeToEdge()
         setContent {
             NulKwooCollectorTheme {
@@ -105,5 +107,10 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        PushNavigationCenter.handleIntent(intent)
+    }
+}

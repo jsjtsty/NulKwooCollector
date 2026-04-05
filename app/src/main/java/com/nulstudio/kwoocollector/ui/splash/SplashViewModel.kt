@@ -38,20 +38,21 @@ class SplashViewModel(
                 _target.value = SplashNavTarget.Login
             } else {
                 try {
-                    val response = apiService.verifyToken()
-                    if (response.isSuccessful) {
+                    val response = apiService.verify()
+                    if (response.code == 0) {
                         _target.value = SplashNavTarget.Main
                     } else {
                         tokenManager.saveToken(null)
                         _target.value = SplashNavTarget.Login
                     }
                 } catch (_: Exception) {
-                    _target.value = SplashNavTarget.Main
+                    tokenManager.saveToken(null)
+                    _target.value = SplashNavTarget.Login
                 }
             }
 
             val duration = System.currentTimeMillis() - startTime
-            if (duration < 800) delay(800 - duration)
+            if (duration < 180) delay(180 - duration)
         }
     }
 }

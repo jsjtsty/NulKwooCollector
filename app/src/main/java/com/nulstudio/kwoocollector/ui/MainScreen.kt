@@ -15,11 +15,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.nulstudio.kwoocollector.ui.dashboard.DashboardScreen
+import com.nulstudio.kwoocollector.ui.dataexplorer.DataExplorerScreen
+import com.nulstudio.kwoocollector.ui.profile.ProfileSettingsScreen
 
 enum class BottomNavItem(val title: String, val icon: ImageVector) {
     Dashboard("工作台", Icons.Default.Home),
@@ -28,9 +30,17 @@ enum class BottomNavItem(val title: String, val icon: ImageVector) {
 }
 
 @Composable
-fun MainScreen() {
-    // 记录当前选中的 Tab 索引
-    var selectedIndex by remember { mutableIntStateOf(0) }
+fun MainScreen(
+    onLogoutSuccess: () -> Unit,
+    onNavigateToFormDetail: (Int) -> Unit,
+    onNavigateToFormHistory: () -> Unit,
+    onNavigateToCreateEntry: (Int) -> Unit,
+    onNavigateToEntryPreview: (Int, Int) -> Unit,
+    onNavigateToEntryEdit: (Int, Int) -> Unit,
+    dashboardRefreshSignal: Long = 0L,
+    dataRefreshSignal: Long = 0L
+) {
+    var selectedIndex by rememberSaveable { androidx.compose.runtime.mutableIntStateOf(0) }
     val items = BottomNavItem.entries.toTypedArray()
 
     Scaffold(
@@ -49,16 +59,26 @@ fun MainScreen() {
             }
         }
     ) { paddingValues ->
-        // 2. 根据选中的索引，切换显示不同的页面
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
             when (selectedIndex) {
-                0 -> DashboardScreen()         // 我们之前写的工作台
-                1 -> DataExplorerScreen()      // 数据管理页（需要新建）
-                2 -> ProfileSettingsScreen()   // 我们之前写的个人中心
+                0 -> DashboardScreen(
+                    onNavigateToFormDetail = onNavigateToFormDetail,
+                    onNavigateToHistory = onNavigateToFormHistory,
+                    refreshSignal = dashboardRefreshSignal
+                )
+
+                1 -> DataExplorerScreen(
+                    onNavigateToCreateEntry = onNavigateToCreateEntry,
+                    onNavigateToEntryDetail = onNavigateToEntryPreview,
+                    onNavigateToEntryEdit = onNavigateToEntryEdit,
+                    refreshSignal = dataRefreshSignal
+                )
+
+                2 -> ProfileSettingsScreen(onLogoutSuccess = onLogoutSuccess)
             }
         }
     }
