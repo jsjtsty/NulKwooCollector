@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.nulstudio.kwoocollector.net.ApiService
 import com.nulstudio.kwoocollector.net.model.response.FormField
 import com.nulstudio.kwoocollector.util.jsonObjectToFormState
+import com.nulstudio.kwoocollector.util.resolveVisibleFields
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +43,7 @@ fun HistoryFormPreviewScreen(
     var description by remember { mutableStateOf("查看历史提交内容。") }
     var schema by remember { mutableStateOf<List<FormField>>(emptyList()) }
     var values by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
+    val visibleSchema = remember(schema, values) { schema.resolveVisibleFields(values) }
 
     LaunchedEffect(formId) {
         isLoading = true
@@ -94,7 +96,7 @@ fun HistoryFormPreviewScreen(
                         )
                     }
 
-                    items(schema, key = { it.key }) { field ->
+                    items(visibleSchema, key = { it.key }) { field ->
                         when (field) {
                             is FormField.Image -> {
                                 val images = (values[field.key] as? List<*>)?.filterIsInstance<String>().orEmpty()

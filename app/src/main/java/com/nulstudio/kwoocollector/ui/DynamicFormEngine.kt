@@ -1,11 +1,14 @@
 package com.nulstudio.kwoocollector.ui
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.content.Context
 import android.net.Uri
+import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,7 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,10 +42,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -54,12 +58,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.nulstudio.kwoocollector.net.model.response.FormField
+import com.nulstudio.kwoocollector.util.flattenFormFields
+import com.nulstudio.kwoocollector.util.resolveVisibleFields
 import kotlinx.coroutines.launch
+import java.text.DecimalFormat
+import java.util.Calendar
 
 @Composable
 fun DynamicFormEngine(
@@ -73,6 +82,20 @@ fun DynamicFormEngine(
 ) {
     val formState = remember(fields, initialValues) {
         mutableStateMapOf<String, Any>().apply { putAll(initialValues) }
+    }
+    val currentValues = formState.toMap()
+    val visibleFields = remember(fields, currentValues) {
+        fields.resolveVisibleFields(currentValues)
+    }
+
+    LaunchedEffect(fields, visibleFields) {
+        val visibleKeys = visibleFields.mapTo(mutableSetOf()) { it.key }
+        fields.flattenFormFields()
+            .map { it.key }
+            .filterNot(visibleKeys::contains)
+            .forEach { hiddenKey ->
+                formState.remove(hiddenKey)
+            }
     }
 
     Column(
@@ -95,10 +118,11 @@ fun DynamicFormEngine(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                fields.forEach { field ->
+                visibleFields.forEach { field ->
                     when (field) {
                         is FormField.Text -> StringInputItem(field, formState, enabled = !isSubmitting)
                         is FormField.Number -> NumberInputItem(field, formState, enabled = !isSubmitting)
+                        is FormField.DateTime -> DateTimeInputItem(field, formState, enabled = !isSubmitting)
                         is FormField.Bool -> BoolInputItem(field, formState, enabled = !isSubmitting)
                         is FormField.Select -> SelectInputItem(field, formState, enabled = !isSubmitting)
                         is FormField.Image -> ImageInputItem(
@@ -114,7 +138,9 @@ fun DynamicFormEngine(
 
         Button(
             onClick = {
-                validateForm(fields, formState.toMap())?.let(onValidationError) ?: onSubmit(formState.toMap())
+                val visibleValues = formState.toMap()
+                    .filterKeys { key -> visibleFields.any { it.key == key } }
+                validateForm(visibleFields, visibleValues)?.let(onValidationError) ?: onSubmit(visibleValues)
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -144,7 +170,7 @@ private fun validateForm(fields: List<FormField>, values: Map<String, Any>): Str
         }
 
         if (invalid) {
-            return "请填写${field.label}"
+            return "请填写 ${field.label}"
         }
     }
     return null
@@ -163,9 +189,12 @@ private fun StringInputItem(field: FormField.Text, state: MutableMap<String, Any
         },
         label = { Text(if (field.required) "* ${field.label}" else field.label) },
         supportingText = {
-            field.maxLength?.let { max ->
-                Text("${textValue.length}/$max")
-            }
+            Text(
+                buildFieldSupportText(
+                    field = field,
+                    extra = field.maxLength?.let { max -> "${textValue.length}/$max" }
+                )
+            )
         },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
@@ -194,7 +223,10 @@ private fun BoolInputItem(field: FormField.Bool, state: MutableMap<String, Any>,
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text = if (isChecked) "已开启" else "已关闭",
+                    text = buildFieldSupportText(
+                        field = field,
+                        extra = if (isChecked) "当前为开启" else "当前为关闭"
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -210,37 +242,168 @@ private fun BoolInputItem(field: FormField.Bool, state: MutableMap<String, Any>,
 
 @Composable
 private fun NumberInputItem(field: FormField.Number, state: MutableMap<String, Any>, enabled: Boolean) {
-    val numberValue = state[field.key]?.toString() ?: ""
+    var inputValue by remember(field.key) {
+        mutableStateOf(formatNumber(state[field.key]))
+    }
+
+    val parsedNumber = inputValue.toDoubleOrNull()
+    val isIncompleteNumber = inputValue == "-" || inputValue == "." || inputValue == "-."
+    val isOutOfRange = parsedNumber != null && !isNumberWithinRange(parsedNumber, field)
+    val hasInputError = inputValue.isNotEmpty() && !isIncompleteNumber && (parsedNumber == null || isOutOfRange)
+
+    LaunchedEffect(state[field.key]) {
+        if (state[field.key] != null || inputValue.isBlank()) {
+            val formattedValue = formatNumber(state[field.key])
+            if (formattedValue != inputValue) {
+                inputValue = formattedValue
+            }
+        }
+    }
 
     OutlinedTextField(
-        value = numberValue,
+        value = inputValue,
         onValueChange = { newValue ->
-            if (newValue.isEmpty()) {
+            if (!NUMBER_INPUT_PATTERN.matches(newValue)) {
+                return@OutlinedTextField
+            }
+
+            inputValue = newValue
+            if (newValue.isEmpty() || newValue == "-" || newValue == "." || newValue == "-.") {
                 state.remove(field.key)
+                return@OutlinedTextField
+            }
+
+            val number = newValue.toDoubleOrNull()
+            if (number != null && isNumberWithinRange(number, field)) {
+                state[field.key] = number
             } else {
-                newValue.toDoubleOrNull()?.let { num ->
-                    val withinMin = field.min?.let { num >= it } ?: true
-                    val withinMax = field.max?.let { num <= it } ?: true
-                    if (withinMin && withinMax) {
-                        state[field.key] = num
-                    }
-                }
+                state.remove(field.key)
             }
         },
         label = { Text(if (field.required) "* ${field.label}" else field.label) },
         supportingText = {
-            val parts = buildList {
-                field.min?.let { add("最小 $it") }
-                field.max?.let { add("最大 $it") }
-            }
-            if (parts.isNotEmpty()) {
-                Text(parts.joinToString(" · "))
-            }
+            Text(
+                buildFieldSupportText(
+                    field = field,
+                    extra = when {
+                        hasInputError && isOutOfRange -> buildRangeText(field)
+                        hasInputError -> "请输入有效数字"
+                        else -> buildRangeText(field)
+                    }
+                )
+            )
         },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = Modifier.fillMaxWidth(),
-        enabled = enabled
+        enabled = enabled,
+        isError = hasInputError,
+        singleLine = true
     )
+}
+
+@Composable
+private fun DateTimeInputItem(field: FormField.DateTime, state: MutableMap<String, Any>, enabled: Boolean) {
+    val context = LocalContext.current
+    val dateTimeValue = state[field.key] as? String ?: ""
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled) {
+                showDateTimePicker(
+                    context = context,
+                    initialValue = dateTimeValue,
+                    onDateTimeSelected = { state[field.key] = it }
+                )
+            }
+    ) {
+        OutlinedTextField(
+            value = dateTimeValue,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(if (field.required) "* ${field.label}" else field.label) },
+            supportingText = {
+                Text(buildFieldSupportText(field, "格式：YYYY-MM-DD HH:mm"))
+            },
+            placeholder = { Text("请选择日期时间") },
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.CalendarToday,
+                    contentDescription = "选择日期时间"
+                )
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = false,
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledSupportingTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+    }
+}
+
+private fun showDateTimePicker(
+    context: Context,
+    initialValue: String,
+    onDateTimeSelected: (String) -> Unit
+) {
+    val initialCalendar = parseDateTimeValue(initialValue) ?: Calendar.getInstance()
+
+    DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            val pickedCalendar = (initialCalendar.clone() as Calendar).apply {
+                set(Calendar.YEAR, year)
+                set(Calendar.MONTH, month)
+                set(Calendar.DAY_OF_MONTH, dayOfMonth)
+            }
+
+            TimePickerDialog(
+                context,
+                { _, hourOfDay, minute ->
+                    pickedCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    pickedCalendar.set(Calendar.MINUTE, minute)
+                    pickedCalendar.set(Calendar.SECOND, 0)
+                    pickedCalendar.set(Calendar.MILLISECOND, 0)
+                    onDateTimeSelected(formatDateTimeValue(pickedCalendar))
+                },
+                pickedCalendar.get(Calendar.HOUR_OF_DAY),
+                pickedCalendar.get(Calendar.MINUTE),
+                DateFormat.is24HourFormat(context)
+            ).show()
+        },
+        initialCalendar.get(Calendar.YEAR),
+        initialCalendar.get(Calendar.MONTH),
+        initialCalendar.get(Calendar.DAY_OF_MONTH)
+    ).show()
+}
+
+private fun parseDateTimeValue(value: String): Calendar? {
+    val matchResult = DATETIME_VALUE_PATTERN.matchEntire(value) ?: return null
+    val (year, month, day, hour, minute) = matchResult.destructured
+    return Calendar.getInstance().apply {
+        set(Calendar.YEAR, year.toInt())
+        set(Calendar.MONTH, month.toInt() - 1)
+        set(Calendar.DAY_OF_MONTH, day.toInt())
+        set(Calendar.HOUR_OF_DAY, hour.toInt())
+        set(Calendar.MINUTE, minute.toInt())
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+}
+
+private fun formatDateTimeValue(calendar: Calendar): String {
+    val year = calendar.get(Calendar.YEAR)
+    val month = (calendar.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
+    val day = calendar.get(Calendar.DAY_OF_MONTH).toString().padStart(2, '0')
+    val hour = calendar.get(Calendar.HOUR_OF_DAY).toString().padStart(2, '0')
+    val minute = calendar.get(Calendar.MINUTE).toString().padStart(2, '0')
+    return "$year-$month-$day $hour:$minute"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -259,6 +422,7 @@ private fun SelectInputItem(field: FormField.Select, state: MutableMap<String, A
             onValueChange = {},
             readOnly = true,
             label = { Text(if (field.required) "* ${field.label}" else field.label) },
+            supportingText = { Text(buildFieldSupportText(field)) },
             placeholder = { Text("请选择") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
@@ -319,6 +483,11 @@ private fun ImageInputItem(
         Text(
             text = if (field.required) "* ${field.label}" else field.label,
             style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            text = buildFieldSupportText(field),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
         FlowRow(
@@ -418,3 +587,41 @@ private fun ImagePreviewItem(imageUrl: String, onDelete: () -> Unit, enabled: Bo
         }
     }
 }
+
+private fun buildFieldSupportText(field: FormField, extra: String? = null): String {
+    return listOfNotNull(fieldTypeLabel(field), extra).joinToString(" · ")
+}
+
+private fun fieldTypeLabel(field: FormField): String {
+    return when (field) {
+        is FormField.Text -> "类型：文本"
+        is FormField.Number -> "类型：数字"
+        is FormField.DateTime -> "类型：日期时间"
+        is FormField.Bool -> "类型：开关"
+        is FormField.Select -> "类型：单选"
+        is FormField.Image -> "类型：图片"
+    }
+}
+
+private fun buildRangeText(field: FormField.Number): String? {
+    val parts = buildList {
+        field.min?.let { add("最小值 $it") }
+        field.max?.let { add("最大值 $it") }
+    }
+    return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
+}
+
+private fun formatNumber(value: Any?): String {
+    val number = value as? Number ?: return ""
+    return NUMBER_DISPLAY_FORMAT.format(number)
+}
+
+private fun isNumberWithinRange(value: Double, field: FormField.Number): Boolean {
+    val withinMin = field.min?.let { value >= it } ?: true
+    val withinMax = field.max?.let { value <= it } ?: true
+    return withinMin && withinMax
+}
+
+private val NUMBER_INPUT_PATTERN = Regex("^-?(\\d+)?(\\.\\d*)?$")
+private val DATETIME_VALUE_PATTERN = Regex("^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2})$")
+private val NUMBER_DISPLAY_FORMAT = DecimalFormat("0.###############")

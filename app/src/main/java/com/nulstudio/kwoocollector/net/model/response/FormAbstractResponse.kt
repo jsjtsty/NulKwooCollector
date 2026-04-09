@@ -7,6 +7,6 @@ data class FormAbstractResponse(
     val id: Int,
     val name: String,
     val deliverTime: Long,
-    val deadline: Long,
+    val deadline: Long?,
     val priority: Int
 )

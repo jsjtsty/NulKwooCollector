@@ -24,50 +24,50 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApiService {
-    @POST("/verify")
+    @POST("/v1/verify")
     suspend fun verify(): NulResult<Unit>
 
-    @POST("/login")
+    @POST("/v1/login")
     suspend fun login(@Body request: LoginRequest): NulResult<String>
 
-    @POST("/register")
+    @POST("/v1/register")
     suspend fun register(@Body request: RegisterRequest): NulResult<String>
 
-    @POST("/logout")
+    @POST("/v1/logout")
     suspend fun logout(): NulResult<Unit>
 
-    @POST("/profile/password")
+    @POST("/v1/profile/password")
     suspend fun changePassword(@Body request: ChangePasswordRequest): NulResult<Unit>
 
-    @GET("/profile")
+    @GET("/v1/profile")
     suspend fun fetchProfile(): NulResult<ProfileResponse>
 
-    @GET("/update")
+    @GET("/v1/update")
     suspend fun fetchUpdates(): NulResult<UpdateResponse>
 
-    @GET("/forms")
+    @GET("/v1/forms")
     suspend fun fetchForms(): NulResult<List<FormAbstractResponse>>
 
-    @GET("/forms/history")
+    @GET("/v1/forms/history")
     suspend fun fetchFormHistory(): NulResult<List<FormAbstractResponse>>
 
-    @GET("/forms/history/{formId}")
+    @GET("/v1/forms/history/{formId}")
     suspend fun fetchFormHistoryDetail(@Path("formId") formId: Int): NulResult<FormHistoryDetailResponse>
 
-    @GET("/forms/{formId}")
+    @GET("/v1/forms/{formId}")
     suspend fun fetchForm(@Path("formId") formId: Int): NulResult<FormDetailResponse>
 
-    @POST("/forms/{formId}")
+    @POST("/v1/forms/{formId}")
     suspend fun fillForm(@Path("formId") formId: Int, @Body content: JsonObject): NulResult<Unit>
 
     @Multipart
-    @POST("/media/upload")
+    @POST("/v1/media/upload")
     suspend fun uploadImage(@Part file: MultipartBody.Part): NulResult<String>
 
-    @GET("/tables")
+    @GET("/v1/tables")
     suspend fun fetchTables(): NulResult<List<TableAbstractResponse>>
 
-    @GET("/tables/{tableId}")
+    @GET("/v1/tables/{tableId}")
     suspend fun listTable(
         @Path("tableId") tableId: Int,
         @Query("page") page: Int,
@@ -75,22 +75,22 @@ interface ApiService {
         @Query("keyword") keyword: String = ""
     ): NulResult<EntryOverallResponse>
 
-    @GET("/tables/{tableId}/{entryId}")
+    @GET("/v1/tables/{tableId}/{entryId}")
     suspend fun fetchEntry(
         @Path("tableId") tableId: Int,
         @Path("entryId") entryId: Int
     ): NulResult<JsonObject>
 
-    @POST("/tables/{tableId}")
+    @POST("/v1/tables/{tableId}")
     suspend fun createEntry(@Path("tableId") tableId: Int, @Body content: JsonObject): NulResult<Unit>
 
-    @PUT("/tables/{tableId}/{entryId}")
+    @PUT("/v1/tables/{tableId}/{entryId}")
     suspend fun updateEntry(
         @Path("tableId") tableId: Int,
         @Path("entryId") entryId: Int,
         @Body content: JsonObject
     ): NulResult<Unit>
 
-    @DELETE("/tables/{tableId}/{entryId}")
+    @DELETE("/v1/tables/{tableId}/{entryId}")
     suspend fun deleteEntry(@Path("tableId") tableId: Int, @Path("entryId") entryId: Int): NulResult<Unit>
 }

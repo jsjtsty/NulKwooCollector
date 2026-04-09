@@ -29,17 +29,32 @@ sealed class FormField {
     ) : FormField()
 
     @Serializable
+    @SerialName("datetime")
+    data class DateTime(
+        override val key: String,
+        override val label: String,
+        override val required: Boolean,
+    ) : FormField()
+
+    @Serializable
     @SerialName("select")
     data class Select(
         override val key: String,
         override val label: String,
         override val required: Boolean,
-        val options: List<SelectItem>
+        val options: List<SelectItem>,
+        val branches: List<SelectBranch> = emptyList()
     ) : FormField() {
         @Serializable
         data class SelectItem (
             val id: Int,
             val name: String
+        )
+
+        @Serializable
+        data class SelectBranch(
+            val optionId: Int,
+            val fields: List<FormField>
         )
     }
 

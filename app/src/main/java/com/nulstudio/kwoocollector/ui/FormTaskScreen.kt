@@ -60,6 +60,7 @@ import com.nulstudio.kwoocollector.net.model.response.FormDetailResponse
 import com.nulstudio.kwoocollector.net.model.response.FormField
 import com.nulstudio.kwoocollector.util.formStateToJsonObject
 import com.nulstudio.kwoocollector.util.jsonObjectToFormState
+import com.nulstudio.kwoocollector.util.resolveVisibleFields
 import com.nulstudio.kwoocollector.util.toTempFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -303,6 +304,7 @@ fun EntryPreviewScreen(
     var description by remember { mutableStateOf("查看当前记录的详细内容。") }
     var schema by remember { mutableStateOf<List<FormField>>(emptyList()) }
     var values by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
+    val visibleSchema = remember(schema, values) { schema.resolveVisibleFields(values) }
 
     LaunchedEffect(tableId, entryId) {
         isLoading = true
@@ -385,7 +387,7 @@ fun EntryPreviewScreen(
                         )
                     }
 
-                    items(schema, key = { it.key }) { field ->
+                    items(visibleSchema, key = { it.key }) { field ->
                         when (field) {
                             is FormField.Image -> {
                                 val images = (values[field.key] as? List<*>)?.filterIsInstance<String>().orEmpty()
@@ -562,6 +564,7 @@ fun previewValueText(field: FormField, value: Any?): String {
     return when (field) {
         is FormField.Text -> value as? String ?: "-"
         is FormField.Number -> value?.toString() ?: "-"
+        is FormField.DateTime -> value as? String ?: "-"
         is FormField.Bool -> when (value as? Boolean) {
             true -> "是"
             false -> "否"

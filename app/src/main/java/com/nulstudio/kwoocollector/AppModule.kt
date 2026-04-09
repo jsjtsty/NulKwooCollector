@@ -37,9 +37,9 @@ val appModule = module {
 
                 chain.proceed(requestBuilder.build())
             }
-            .addInterceptor(MockInterceptor())
+            // .addInterceptor(MockInterceptor())
             .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.NONE
+                level = HttpLoggingInterceptor.Level.BASIC
             })
             .build()
     }
@@ -49,7 +49,8 @@ val appModule = module {
         val contentType = "application/json".toMediaType()
 
         Retrofit.Builder()
-            .baseUrl("http://127.0.0.1/")
+            // .baseUrl("http://106.75.215.104:1081/")
+            .baseUrl("http://192.168.137.1:1081/")
             .client(get())
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()

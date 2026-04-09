@@ -16,8 +16,8 @@ android {
         applicationId = "com.nulstudio.kwoocollector"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "0.0.2"
         manifestPlaceholders["JPUSH_APPKEY"] = (project.findProperty("JPUSH_APPKEY") as String?) ?: ""
         manifestPlaceholders["JPUSH_CHANNEL"] = (project.findProperty("JPUSH_CHANNEL") as String?) ?: "developer-default"
 

@@ -35,7 +35,7 @@ fun jsonObjectToFormState(
     fields: List<FormField>,
     content: JsonObject
 ): Map<String, Any> = buildMap {
-    fields.forEach { field ->
+    fields.flattenFormFields().forEach { field ->
         val value = content[field.key] ?: return@forEach
         parseFieldValue(field, value)?.let { put(field.key, it) }
     }
@@ -45,6 +45,7 @@ private fun parseFieldValue(field: FormField, value: JsonElement): Any? {
     return when (field) {
         is FormField.Text -> value.jsonPrimitive.contentOrNull
         is FormField.Number -> value.jsonPrimitive.doubleOrNull
+        is FormField.DateTime -> value.jsonPrimitive.contentOrNull
         is FormField.Bool -> value.jsonPrimitive.booleanOrNull
         is FormField.Select -> value.jsonPrimitive.intOrNull
         is FormField.Image -> value.jsonArray.mapNotNull { it.jsonPrimitive.contentOrNull }

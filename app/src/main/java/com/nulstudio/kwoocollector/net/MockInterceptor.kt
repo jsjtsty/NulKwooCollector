@@ -51,13 +51,15 @@ class MockInterceptor : Interceptor {
                   "submittedAt":1679500000000,
                   "fields":[
                     {"type":"text","key":"device_name","label":"设备名称","required":true,"maxLength":50},
+                    {"type":"datetime","key":"inspection_time","label":"巡检时间","required":true},
                     {"type":"number","key":"temperature","label":"运行温度(℃)","required":true,"min":-20.0,"max":150.0},
-                    {"type":"select","key":"status","label":"运行状态","required":true,"options":[{"id":1,"name":"正常运行"},{"id":2,"name":"带病运行"},{"id":3,"name":"已停机"}]},
+                    {"type":"select","key":"status","label":"运行状态","required":true,"options":[{"id":1,"name":"正常运行"},{"id":2,"name":"带病运行"},{"id":3,"name":"已停机"}],"branches":[{"optionId":2,"fields":[{"type":"text","key":"fault_desc","label":"故障说明","required":true,"maxLength":120}]},{"optionId":3,"fields":[{"type":"datetime","key":"shutdown_time","label":"停机时间","required":true}]}]},
                     {"type":"bool","key":"need_repair","label":"是否需要报修","required":false},
                     {"type":"image","key":"scene_photos","label":"现场照片","required":false}
                   ],
                   "content":{
                     "device_name":"一号高压泵",
+                    "inspection_time":"2026-04-09 09:30",
                     "temperature":72.5,
                     "status":1,
                     "need_repair":false,
@@ -76,13 +78,15 @@ class MockInterceptor : Interceptor {
                   "submittedAt":1676800000000,
                   "fields":[
                     {"type":"text","key":"workshop","label":"车间名称","required":true,"maxLength":20},
+                    {"type":"datetime","key":"report_time","label":"上报时间","required":true},
                     {"type":"number","key":"output","label":"日产量(吨)","required":true,"min":0.0,"max":9999.0},
-                    {"type":"select","key":"shift","label":"班次","required":true,"options":[{"id":1,"name":"白班"},{"id":2,"name":"夜班"}]},
+                    {"type":"select","key":"shift","label":"班次","required":true,"options":[{"id":1,"name":"白班"},{"id":2,"name":"夜班"}],"branches":[{"optionId":2,"fields":[{"type":"bool","key":"night_check_completed","label":"夜班复核完成","required":true}]}]},
                     {"type":"bool","key":"abnormal","label":"是否异常","required":false},
                     {"type":"image","key":"attachments","label":"现场照片","required":false}
                   ],
                   "content":{
                     "workshop":"二号车间",
+                    "report_time":"2026-04-08 18:00",
                     "output":1680.0,
                     "shift":2,
                     "abnormal":false,
@@ -109,8 +113,9 @@ class MockInterceptor : Interceptor {
                   "description":"请在下班前完成生产数据采集并提交。",
                   "fields":[
                     {"type":"text","key":"workshop","label":"车间名称","required":true,"maxLength":20},
+                    {"type":"datetime","key":"report_time","label":"上报时间","required":true},
                     {"type":"number","key":"output","label":"日产量(吨)","required":true,"min":0.0,"max":9999.0},
-                    {"type":"select","key":"shift","label":"班次","required":true,"options":[{"id":1,"name":"白班"},{"id":2,"name":"夜班"}]},
+                    {"type":"select","key":"shift","label":"班次","required":true,"options":[{"id":1,"name":"白班"},{"id":2,"name":"夜班"}],"branches":[{"optionId":2,"fields":[{"type":"bool","key":"night_check_completed","label":"夜班复核完成","required":true}]}]},
                     {"type":"bool","key":"abnormal","label":"是否异常","required":false},
                     {"type":"image","key":"attachments","label":"现场照片","required":false}
                   ]
@@ -126,8 +131,9 @@ class MockInterceptor : Interceptor {
                   "description":"请在现场录入温度、状态并上传照片。",
                   "fields":[
                     {"type":"text","key":"device_name","label":"设备名称","required":true,"maxLength":50},
+                    {"type":"datetime","key":"inspection_time","label":"巡检时间","required":true},
                     {"type":"number","key":"temperature","label":"运行温度(℃)","required":true,"min":-20.0,"max":150.0},
-                    {"type":"select","key":"status","label":"运行状态","required":true,"options":[{"id":1,"name":"正常运行"},{"id":2,"name":"带病运行"},{"id":3,"name":"已停机"}]},
+                    {"type":"select","key":"status","label":"运行状态","required":true,"options":[{"id":1,"name":"正常运行"},{"id":2,"name":"带病运行"},{"id":3,"name":"已停机"}],"branches":[{"optionId":2,"fields":[{"type":"text","key":"fault_desc","label":"故障说明","required":true,"maxLength":120}]},{"optionId":3,"fields":[{"type":"datetime","key":"shutdown_time","label":"停机时间","required":true}]}]},
                     {"type":"bool","key":"need_repair","label":"是否需要报修","required":false},
                     {"type":"image","key":"scene_photos","label":"现场照片","required":true}
                   ]
@@ -149,8 +155,9 @@ class MockInterceptor : Interceptor {
                     "name":"巡检台账表",
                     "schema":[
                       {"type":"text","key":"device_name","label":"设备名称","required":true,"maxLength":50},
+                      {"type":"datetime","key":"inspection_time","label":"巡检时间","required":true},
                       {"type":"number","key":"temperature","label":"运行温度(℃)","required":true,"min":-20.0,"max":150.0},
-                      {"type":"select","key":"status","label":"运行状态","required":true,"options":[{"id":1,"name":"正常运行"},{"id":2,"name":"带病运行"},{"id":3,"name":"已停机"}]},
+                      {"type":"select","key":"status","label":"运行状态","required":true,"options":[{"id":1,"name":"正常运行"},{"id":2,"name":"带病运行"},{"id":3,"name":"已停机"}],"branches":[{"optionId":2,"fields":[{"type":"text","key":"fault_desc","label":"故障说明","required":true,"maxLength":120}]},{"optionId":3,"fields":[{"type":"datetime","key":"shutdown_time","label":"停机时间","required":true}]}]},
                       {"type":"bool","key":"need_repair","label":"是否需要报修","required":false},
                       {"type":"image","key":"scene_photos","label":"现场照片","required":false}
                     ]
@@ -160,8 +167,9 @@ class MockInterceptor : Interceptor {
                     "name":"产线日报表",
                     "schema":[
                       {"type":"text","key":"line_name","label":"产线名称","required":true,"maxLength":30},
+                      {"type":"datetime","key":"report_time","label":"上报时间","required":true},
                       {"type":"number","key":"daily_output","label":"当日产量","required":true,"min":0.0,"max":100000.0},
-                      {"type":"select","key":"quality","label":"质量评级","required":true,"options":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"}]},
+                      {"type":"select","key":"quality","label":"质量评级","required":true,"options":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"}],"branches":[{"optionId":3,"fields":[{"type":"text","key":"quality_issue","label":"质量问题说明","required":true,"maxLength":120}]}]},
                       {"type":"bool","key":"maintenance_done","label":"是否完成保养","required":false},
                       {"type":"image","key":"report_images","label":"报告附件","required":false}
                     ]
@@ -199,6 +207,7 @@ class MockInterceptor : Interceptor {
                 """
                 {"code":0,"message":null,"result":{
                   "device_name":"1号高压泵",
+                  "inspection_time":"2026-04-09 08:45",
                   "temperature":68.5,
                   "status":1,
                   "need_repair":false,
@@ -211,8 +220,10 @@ class MockInterceptor : Interceptor {
                 """
                 {"code":0,"message":null,"result":{
                   "device_name":"2号冷却机",
+                  "inspection_time":"2026-04-09 14:20",
                   "temperature":83.0,
                   "status":2,
+                  "fault_desc":"冷却系统压力异常",
                   "need_repair":true,
                   "scene_photos":["https://dummyimage.com/600x400/b33/fff&text=Cooler"]
                 }}
@@ -223,6 +234,7 @@ class MockInterceptor : Interceptor {
                 """
                 {"code":0,"message":null,"result":{
                   "line_name":"一号产线",
+                  "report_time":"2026-04-09 20:10",
                   "daily_output":1000.0,
                   "quality":1,
                   "maintenance_done":true,
